@@ -108,7 +108,7 @@
                 </div>
             </div>
 
-            <!-- 약관 동의 (보기 드롭다운 완벽 수정) -->
+            <!-- 약관 동의 -->
             <div class="mt-8 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                 <!-- 필수 동의 -->
                 <div class="border-b border-gray-200">
@@ -178,7 +178,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
-            // ⚠️ 주의: Apps Script URL을 아래 작은따옴표 사이에 넣으세요. 따옴표를 지우면 작동하지 않습니다.
+            // 실제 동작을 위한 구글 스크립트 URL 설정 완료
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJ_ILqMesqzJdLoDbV4aivuDD31EGmMtuQsgOEWPM9IWgfhP2ClEJUBo3oxS3tSnkA/exec'; 
 
             const submitBtn = document.getElementById('submitBtn');
@@ -233,7 +233,7 @@
 
                 // 2. 필수 동의 체크
                 const agreeRequired = document.getElementById('agreeRequired');
-                const agreeRequiredContainer = agreeRequired.closest('label'); // 테두리 흔들림을 위한 부모 요소
+                const agreeRequiredContainer = agreeRequired.closest('label');
                 if (!agreeRequired.checked) {
                     showError(agreeRequiredContainer, '필수 개인정보 수집 동의가 필요합니다.');
                     return;
@@ -255,37 +255,28 @@
                     agreeOptional: document.getElementById('agreeOptional').checked ? 'Y' : 'N'
                 };
 
-                // 4. 로딩 UI 표시 (CX 개선)
+                // 4. 로딩 UI 표시
                 submitBtn.innerHTML = '<span class="loader"></span> 제출 중...';
                 submitBtn.disabled = true;
                 submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
 
-                // 5. 구글 시트로 전송
-                if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbxJ_ILqMesqzJdLoDbV4aivuDD31EGmMtuQsgOEWPM9IWgfhP2ClEJUBo3oxS3tSnkA/exec' || GOOGLE_SCRIPT_URL.trim() === '') {
-                    // URL 미입력 시 테스트 화면 전환 (1.5초 딜레이)
-                    setTimeout(showSuccess, 1500);
-                } else {
-                    // 실제 전송 (CORS 에러 방지를 위해 mode: 'no-cors' 필수)
-                    fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', 
-                        cache: 'no-cache',
-                        headers: { 'Content-Type': 'application/json' },
-                        redirect: 'follow',
-                        body: JSON.stringify(data)
-                    })
-                    .then(() => {
-                        // no-cors 모드는 성공/실패 여부를 코드로 반환하지 않으므로 무조건 성공으로 간주하여 화면 넘김
-                        showSuccess();
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-                        submitBtn.innerHTML = '<span>설문 제출하고 경품 받기</span>';
-                        submitBtn.disabled = false;
-                        submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
-                    });
-                }
+                // 5. 구글 시트로 전송 (CORS 오류 방지를 위해 text/plain 사용 및 방어 코드 삭제)
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(data)
+                })
+                .then(res => res.json())
+                .then(response => {
+                    showSuccess();
+                })
+                .catch(err => {
+                    console.error('Fetch Error:', err);
+                    alert('네트워크 또는 권한 오류가 발생했습니다. 구글 앱스 스크립트의 배포 권한이 "모든 사용자(Anyone)"인지 확인해주세요.');
+                    submitBtn.innerHTML = '<span>설문 제출하고 경품 받기</span>';
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                });
             });
 
             // 에러 표시 함수
